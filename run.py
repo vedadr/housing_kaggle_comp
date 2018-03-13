@@ -1,38 +1,42 @@
-from numpy import loadtxt
-from sklearn.metrics import accuracy_score
-from xgboost import XGBClassifier
+from sklearn.metrics import explained_variance_score
+import pandas as pd
+import statsmodels.api as sm
+
 
 from data_preparation import data_preparation
 
 
 def load_data():
-    return loadtxt('data/pima-indians-diabetes.csv', delimiter=',')
-
+    # return loadtxt('data/pima-indians-diabetes.csv', delimiter=',')
+    test_data = pd.read_csv('./house_data/test.csv')
+    train_data = pd.read_csv('./house_data/train.csv')
+    return train_data, test_data
 
 def prediction(train):
-    model = XGBClassifier()
-    fit = model.fit(train['x_train'],train['y_train'])
-    print(fit)
+    model = sm.OLS(train['x_train']['LotArea'].astype(float), train['y_train'].astype(float))
 
-    # predictions for test data
-    y_pred = model.predict(train['x_test'])
-    predictions = [round(value) for value in y_pred]
-    return fit, predictions
+    fit = model.fit()
+    print(fit.summary())
 
-def evaluate(train_pred, train_test_data):
-    accuracy = accuracy_score(train_test_data['y_test'], train_pred)
+    # predictions
+    predicted_price = fit.predict(train['x_train']['LotArea'].astype(float))
+
+    return predicted_price, train
+
+def evaluate(test_pred, train_test_data):
+    accuracy = explained_variance_score(train_test_data['y_train'], test_pred)
     print("Accuracy: %.2f%%" % (accuracy * 100.0))
 
 
 if __name__ == '__main__':
     # data load
-    dataset = load_data()
+    dataset_train, dataset_test = load_data()
 
     # data preparation
-    train_test_data = data_preparation(dataset)
+    train_test_data = data_preparation(dataset_train, dataset_test)
 
     # modeling
-    fit, train_pred = prediction(train_test_data)
+    test_pred, train_test_data = prediction(train_test_data)
 
     # evaluation
-    evaluate(train_pred, train_test_data)
+    evaluate(test_pred, train_test_data)
